@@ -618,7 +618,16 @@ class Executor(object):
         ----------
         feed_shapes: node->shapes mapping for feed_dict nodes.
         """
-        """TODO: Your code here"""
+        """: Your code here"""
+        self.node_to_shape_map = dict(feed_shapes)
+
+        for node in self.topo_order:
+            if node in self.node_to_shape_map:
+                continue
+            
+            input_shapes = [self.node_to_shape_map[in_node] for in_node in node.inputs]
+            self.node_to_shape_map[node] = infer_shape(node, input_shapes)
+
 
     def memory_plan(self, feed_shapes):
         """Allocates ndarray.NDArray for every node except feed_dict nodes.
