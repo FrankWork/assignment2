@@ -7,6 +7,8 @@
 /* TODO: Your code here */
 /* all your GPU kernel code, e.g. matrix_softmax_cross_entropy_kernel */
 
+static const size_t TPB = 512;// threads per block
+
 // y = inputs[0], y_ = inputs[1]
 // np.mean(-np.sum(y_ * np.log(softmax(y)), axis=1), keepdims=True)
 __global__ void matrix_softmax_cross_entropy_kernel(int nrow, int ncol,
@@ -52,12 +54,46 @@ __global__ void matrix_softmax_cross_entropy_kernel(int nrow, int ncol,
   }
 }
 
+__global__ void array_set_kernel(float* d_arr, float value, size_t n){
+  const int i= blockIdx.x*blockDim.x + threadIdx.x;
+
+  if(i<n){
+    d_arr[i] = value;
+  }
+}
+
+__global__ void broad_cast_to_kernel(const float *d_in, float *d_out){
+    const int i= blockIdx.x*blockDim.x + threadIdx.x;
+  
+    d_out[i] = 
+    if(i<n){
+      d_arr[i] = value;
+    }
+}
+
 int DLGpuArraySet(DLArrayHandle arr, float value) { /* TODO: Your code here */
+  float *arr_data = (float *)arr->data;
+  size_t n = 1;
+  for(int i=0;i<arr->ndim;++i){
+    n *= arr->shape[i];
+  }
+  n_block = (n + TPB - 1) / TPB;
+
+  array_set_kernel<<<n_block, TPB>>>(arr_data, value, n);
   return 0;
 }
 
 int DLGpuBroadcastTo(const DLArrayHandle input, DLArrayHandle output) {
   /* TODO: Your code here */
+  assert(input->shape[input->ndim-1] == output->shape[output->ndim-1]);
+  // CONTINUE HERE
+  input->ndim
+  input->shape[i]
+
+  output->ndim
+  for(int i=0;i<output->shape[0];++i){
+    output->data[0] = input->data;
+  }
   return 0;
 }
 

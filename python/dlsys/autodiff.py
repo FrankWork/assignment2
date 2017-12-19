@@ -321,11 +321,28 @@ class MatMulOp(Op):
 
     def infer_shape(self, node, input_shapes):
         """: Your code here"""
-        # FIXME: tensor matmul
         assert len(input_shapes) == 2
-        assert input_shapes[0][1] == input_shapes[1][0]
-        # axb bxc => axc
-        return (input_shapes[0][0], input_shapes[0][1])
+        
+        if ((node.matmul_attr_trans_A is False) and
+                    (node.matmul_attr_trans_B is False)):
+            # A(axb) B(bxc) => C(axc)
+            assert input_shapes[0][1] == input_shapes[1][0]
+            return (input_shapes[0][0], input_shapes[1][1])
+        elif ((node.matmul_attr_trans_A is True) and
+                (node.matmul_attr_trans_B is False)):
+            # A.T(bxa) B(bxc) => C(axc)
+            assert input_shapes[0][0] == input_shapes[1][0]
+            return (input_shapes[0][1], input_shapes[1][1])
+        elif ((node.matmul_attr_trans_A is False) and
+                (node.matmul_attr_trans_B is True)):
+            # A(axb) B.T(cxb) => C(axc)
+            assert input_shapes[0][1] == input_shapes[1][1]
+            return (input_shapes[0][0], input_shapes[1][0])
+        elif ((node.matmul_attr_trans_A is True) and
+                (node.matmul_attr_trans_B is True)):
+            # A.T(bxa) B.T(cxb) => C(axc)
+            assert input_shapes[0][0] == input_shapes[1][1]
+            return (input_shapes[0][1], input_shapes[1][0])
 
 
 class PlaceholderOp(Op):
@@ -422,7 +439,9 @@ class ReduceSumAxisZeroOp(Op):
         """
         """: Your code here"""
         assert len(input_shapes)==1
-        return input_shapes[0][0]
+        if len(input_shapes[0]) == 1:
+            return (1,)
+        return input_shapes[0][1:]
 
 
 class BroadcastToOp(Op):
@@ -647,6 +666,14 @@ class Executor(object):
         feed_shapes: node->shapes mapping for feed_dict nodes.
         """
         """TODO: Your code here"""
+        self.node_to_arr_map = dict()
+
+        for node in self.topo_order:
+            if node in self.feed_shapes:
+                continue
+            shape = self.node_to_shape_map[node]
+            self.node_to_arr_map[node] = ndarray.empty(shape, ctx=self.ctx)
+
 
     def run(self, feed_dict, convert_to_numpy_ret_vals=False):
         """
