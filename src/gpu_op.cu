@@ -206,7 +206,7 @@ int DLGpuReduceSumAxisZero(const DLArrayHandle input, DLArrayHandle output) {
 int DLGpuMatrixElementwiseAdd(const DLArrayHandle matA,
                               const DLArrayHandle matB, DLArrayHandle output) {
   /* TODO: Your code here */
-  assert(matA->ndim == 2 && matB->ndim == 2 && output->ndim == 2);
+  // assert(matA->ndim == 2 && matB->ndim == 2 && output->ndim == 2);
   // assert(matA->shape[0] == matB->shape[0] == output->shape[0] &&
   //        matA->shape[1] == matB->shape[1] == output->shape[1]);
   
@@ -257,9 +257,9 @@ int DLGpuMatrixElementwiseMultiply(const DLArrayHandle matA,
 int DLGpuMatrixMultiplyByConst(const DLArrayHandle input, float val,
                                DLArrayHandle output) {
   /* TODO: Your code here */
-  assert(input->ndim == 2 && output->ndim == 2);
-  assert(input->shape[0] == output->shape[0] &&
-         input->shape[1] == output->shape[1]);
+  // assert(input->ndim == 2 && output->ndim == 2);
+  // assert(input->shape[0] == output->shape[0] &&
+  //        input->shape[1] == output->shape[1]);
   
   const float *in_data = (float *)input->data;
   float *out_data = (float *)output->data;
