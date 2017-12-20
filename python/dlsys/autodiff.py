@@ -645,7 +645,8 @@ class Executor(object):
                 continue
             
             input_shapes = [self.node_to_shape_map[in_node] for in_node in node.inputs]
-            self.node_to_shape_map[node] = infer_shape(node, input_shapes)
+            shape = node.op.infer_shape(node, input_shapes)
+            self.node_to_shape_map[node] = shape
 
 
     def memory_plan(self, feed_shapes):
