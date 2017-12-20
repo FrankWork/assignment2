@@ -669,11 +669,42 @@ class Executor(object):
         """TODO: Your code here"""
         self.node_to_arr_map = dict()
 
+        # for node in self.topo_order:
+        #     if node not in self.feed_shapes:
+        #         shape = self.node_to_shape_map[node]
+        #         self.node_to_arr_map[node] = ndarray.empty(shape, ctx=self.ctx)
+# 18.33%  376.59ms     12301  30.614us  5.9650us  265.26ms  cudaMalloc
+# 12.44%  621.35ms     36301  17.116us  6.2380us  293.85ms  cudaMalloc
+
+        counter = dict()
         for node in self.topo_order:
-            if node in self.feed_shapes:
-                continue
-            shape = self.node_to_shape_map[node]
-            self.node_to_arr_map[node] = ndarray.empty(shape, ctx=self.ctx)
+            if node not in self.eval_node_list and node not in self.feed_shapes:
+                counter[node] = 0
+            for in_node in node.inputs:
+                if in_node in counter:
+                    counter[in_node] += 1
+
+        pool = dict()
+        for node in self.topo_order:
+            if node not in self.feed_shapes:
+                shape = self.node_to_shape_map[node]
+                if shape not in pool:
+                    pool[shape] = list()
+                if len(pool[shape]) == 0:
+                    mem = ndarray.empty(shape, ctx=self.ctx)
+                    pool[shape].append(mem)
+                mem = pool[shape].pop(0)
+                self.node_to_arr_map[node] = mem
+            
+            for in_node in node.inputs:
+                if in_node in counter:
+                    counter[in_node] -= 1
+                    if counter[in_node] == 0:
+                        mem = self.node_to_arr_map[in_node]
+                        shape = self.node_to_shape_map[in_node]
+                        pool[shape].append(mem)
+# epoch 10: 16.98%  339.28ms     12291  27.603us  4.4840us  228.26ms  cudaMalloc
+# epoch 30: 12.26%  617.25ms     36291  17.008us  5.6340us  297.79ms  cudaMalloc
 
 
     def run(self, feed_dict, convert_to_numpy_ret_vals=False):
