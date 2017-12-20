@@ -40,7 +40,7 @@ __global__ void reduce_sum_kernel(const float *d_in, float *d_out,
   const int i= blockIdx.x*blockDim.x + threadIdx.x;
 
   if(i<n_out){
-    d_out[i] = 0f;
+    d_out[i] = 0.f;
 
     for(size_t j=i;j<n_in;j+=n_out){
       d_out[i] += d_in[j];
@@ -88,7 +88,7 @@ __global__ void relu_kernel(const float *d_in, float *d_out, const size_t n_out)
   const int i= blockIdx.x*blockDim.x + threadIdx.x;
 
   if(i<n_out){
-    d_out[i] = d_in[i]>0f ? d_in[i] : 0f;
+    d_out[i] = d_in[i]>0.f ? d_in[i] : 0.f;
   }
 }
 
@@ -97,7 +97,7 @@ __global__ void relu_grad_kernel(const float *d_in, const float *d_in_grad,
   const int i= blockIdx.x*blockDim.x + threadIdx.x;
 
   if(i<n_out){
-    d_out[i] = d_in[i]>0f ? d_in_grad[i] : 0f;
+    d_out[i] = d_in[i]>0.f ? d_in_grad[i] : 0.f;
   }
 }
 
@@ -106,16 +106,16 @@ __global__ void matrix_softmax_kernel(const float *d_in, float *d_out,
   const size_t idx = blockDim.x * blockIdx.x + threadIdx.x;
   if(idx < n_out) {
     size_t start = (idx / n_cols) * n_cols;
-    float max_val = input[start];
+    float max_val = d_in[start];
     for(size_t i = 0; i < n_cols; ++i) {
-      max_val = max(max_val, input[start + i]);
+      max_val = max(max_val, d_in[start + i]);
     }
 
     float sum = 0.0;
     for(size_t i = 0; i < n_cols; ++i) {
-        sum += exp(input[start + i] - max_val);
+        sum += exp(d_in[start + i] - max_val);
     }
-    d_out[idx] = exp(input[idx] - max_val) / sum;
+    d_out[idx] = exp(d_in[idx] - max_val) / sum;
   }
 }
 
@@ -207,8 +207,8 @@ int DLGpuMatrixElementwiseAdd(const DLArrayHandle matA,
                               const DLArrayHandle matB, DLArrayHandle output) {
   /* TODO: Your code here */
   assert(matA->ndim == 2 && matB->ndim == 2 && output->ndim == 2);
-  assert(matA->shape[0] == matB->shape[0] == output->shape[0] &&
-         matA->shape[1] == matB->shape[1] == output->shape[1]);
+  // assert(matA->shape[0] == matB->shape[0] == output->shape[0] &&
+  //        matA->shape[1] == matB->shape[1] == output->shape[1]);
   
   const float *matA_data = (float *)matA->data;
   const float *matB_data = (float *)matB->data;
@@ -241,8 +241,8 @@ int DLGpuMatrixElementwiseMultiply(const DLArrayHandle matA,
                                    DLArrayHandle output) {
   /* TODO: Your code here */
   assert(matA->ndim == 2 && matB->ndim == 2 && output->ndim == 2);
-  assert(matA->shape[0] == matB->shape[0] == output->shape[0] &&
-         matA->shape[1] == matB->shape[1] == output->shape[1]);
+  // assert(matA->shape[0] == matB->shape[0] == output->shape[0] &&
+  //        matA->shape[1] == matB->shape[1] == output->shape[1]);
   
   const float *matA_data = (float *)matA->data;
   const float *matB_data = (float *)matB->data;
@@ -277,14 +277,14 @@ int DLGpuMatrixMultiply(const DLArrayHandle matA, bool transposeA,
   // Hint: use cublas
   // cublas assume matrix is column major
   assert(matA->ndim == 2 && matB->ndim == 2 && matC->ndim == 2);
-  assert(matA->shape[0] == matB->shape[0] == matC->shape[0] &&
-         matA->shape[1] == matB->shape[1] == matC->shape[1]);
+  // assert(matA->shape[0] == matB->shape[0] == matC->shape[0] &&
+  //        matA->shape[1] == matB->shape[1] == matC->shape[1]);
 
   cublasHandle_t handle;
   cublasStatus_t status = cublasCreate(&handle);
   if (status != CUBLAS_STATUS_SUCCESS) {return -1;}
-  cublasOperation_t transa = transposeA ? CUBLAS_OP_T: CUBLAS_OP_N
-  cublasOperation_t transb = transposeB ? CUBLAS_OP_T: CUBLAS_OP_N
+  cublasOperation_t transa = transposeA ? CUBLAS_OP_T: CUBLAS_OP_N;
+  cublasOperation_t transb = transposeB ? CUBLAS_OP_T: CUBLAS_OP_N;
 
   // C = alpha*op(A)op(B) + beta*C
   // op(A) m × k , op(B) k × n and C m × n ,
@@ -295,20 +295,20 @@ int DLGpuMatrixMultiply(const DLArrayHandle matA, bool transposeA,
   int n = transposeA ? matA->shape[1] : matA->shape[0];
   int k = transposeA ? matA->shape[0] : matA->shape[1];
 
-  const float alpha = 1f;
-  const float beta = 0f;
+  const float alpha = 1.f;
+  const float beta = 0.f;
 
   const float *matA_data = (float *)matA->data;
   const float *matB_data = (float *)matB->data;
   float *matC_data = (float *)matC->data;
   
-  status = cublasSgemm(handle, transa, transb, m, n, k, &alpha,
+  status = cublasSgemm(handle, transb, transa, m, n, k, &alpha,
               matB_data, matB->shape[1], matA_data, matA->shape[1],  
-              beta, matC_data, m);
-  if (stat != CUBLAS_STATUS_SUCCESS) {return -1;}
+              &beta, matC_data, m);
+  if (status != CUBLAS_STATUS_SUCCESS) {return -1;}
 
-  stat = cublasDestroy(handle);
-  if (stat != CUBLAS_STATUS_SUCCESS) {return -1;}
+  status = cublasDestroy(handle);
+  if (status != CUBLAS_STATUS_SUCCESS) {return -1;}
   return 0;
 }
 
@@ -328,10 +328,10 @@ int DLGpuRelu(const DLArrayHandle input, DLArrayHandle output) {
 int DLGpuReluGradient(const DLArrayHandle input, const DLArrayHandle in_grad,
                       DLArrayHandle output) {
   /* TODO: Your code here */
-  assert(input->ndim == in_grad->ndim == output->ndim);
+  // assert(input->ndim == in_grad->ndim == output->ndim);
   
   const float *in_data = (float *)input->data;
-  const float *in_grad_data = (float *)in_grad_data->data;
+  const float *in_grad_data = (float *)in_grad->data;
   float *out_data = (float *)output->data;
 
   size_t n_out = get_array_size(output);
@@ -342,7 +342,7 @@ int DLGpuReluGradient(const DLArrayHandle input, const DLArrayHandle in_grad,
 
 int DLGpuSoftmax(const DLArrayHandle input, DLArrayHandle output) {
   /* TODO: Your code here */
-  assert(input->ndim == output->ndim == 2);
+  // assert(input->ndim == output->ndim == 2);
   
   const float *in_data = (float *)input->data;
   float *out_data = (float *)output->data;
